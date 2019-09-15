@@ -1,22 +1,81 @@
 use num::Complex;
 use image::{png::PNGEncoder, ColorType};
 use std::fs::File;
+use std::f64::consts::PI;
+use byteorder::{ReadBytesExt, WriteBytesExt, NativeEndian};
+use clap::App;
 
-const MAX_ITERATIONS: [usize; 3] = [10000, 100000, 1000];
+const MAX_ITERATIONS: [usize; 3] = [100000, 10000, 1000];
 const WIDTH: u32 = 2048;
 const HEIGHT: u32 = 1192;
 const PIXELS: usize = (HEIGHT * WIDTH) as usize;
+const ATAN_SCALE: f64 = 10.0;
 
 fn main() {
+    let matches = App::new("nebulabrot")
+                          .version("1.0")
+                          .author("Christian Kuhl <christian.kuhl84@gmail.com>")
+                          .about("Renders the nebulabrot fractal as png")
+                          .args_from_usage(
+                              "-o, --output=[OUT_FILE] 'Output png to [OUT_FILE]'
+                               -i, --input=[IN_FILE]   'Get input from iteration dump [IN_FILE]'
+                               -d, --dump=[DUMP_FILE]  'Dump iteration data to [DUMP_FILE]'")
+                          .get_matches();
+
+    let mut buffer: Box<Vec<u32>>;
+    let mut calculate: bool = true;
+    if let Some(input_file) = matches.value_of("input") {
+        println!("Reading input from {}...", input_file);
+        buffer = buffer_from_file(input_file);
+        calculate = false;
+    } else {
+        buffer = Box::new(Vec::with_capacity(3*PIXELS));
+    }
     let mut plot_range = PlotRange { top_left: Complex {re: -20.0/9.0-0.5, im: 1.25},
                                     bottom_right: Complex {re: 11.0/9.0, im: -1.25},
-                                    buffer: Box::new(Vec::with_capacity(3*PIXELS))};
-    plot_range.iterate(MAX_ITERATIONS);
-    let pixel_data = plot_range.renormalize();
-    let file_handle = File::create("buddhabrot.png").expect("Error opening file.");
+                                    buffer: buffer};
+    if calculate {
+        println!("Calculating iterations...");
+        plot_range.iterate(MAX_ITERATIONS);
+    }
+    if let Some(dump_file) = matches.value_of("dump") {
+        println!("Dumping iteration data to {}...", dump_file);
+        buffer_to_file(dump_file, &plot_range.buffer);
+    }
+    if let Some(output_file) = matches.value_of("output") {
+        println!("Calculating png data...");
+        let pixel_data = plot_range.renormalize();
+        save_png(output_file, &pixel_data);
+    }
+    println!("Done.");
+}
+
+fn save_png(file_name: &str, pixel_data: &Box<Vec<u8>>){
+    println!("Saving png to {}...", file_name);
+    let file_handle = File::create(file_name).expect("Error opening file.");
     let png = PNGEncoder::new(file_handle);
     png.encode(&pixel_data[..], WIDTH, HEIGHT, ColorType::RGB(8)).expect("Error encoding png.");
 }
+
+
+fn buffer_to_file(file_name: &str, buffer: &Box<Vec<u32>>) {
+    let mut file_handle = File::create(file_name).expect("Error opening file.");
+    for count in buffer.iter() {
+        file_handle.write_u32::<NativeEndian>(*count).expect("Error writing to file.");
+    }
+}
+
+fn buffer_from_file(file_name: &str) -> Box<Vec<u32>> {
+    let mut buffer: Box<Vec<u32>> = Box::new(Vec::with_capacity(3*PIXELS));
+    for _ in 0..3*PIXELS {
+        buffer.push(0);
+    }
+    let mut file_handle = File::open(file_name).expect("Error opening file.");
+    file_handle.read_u32_into::<NativeEndian>(&mut buffer).unwrap();
+    buffer
+}
+
+
 
 fn in_mandelbrot_set(c: &Complex<f64>) -> bool {
    (c.re >  -1.2 && c.re <=  -1.1 && c.im >  -0.1 && c.im < 0.1)
@@ -42,9 +101,19 @@ impl PlotRange {
         for _ in 0..3*PIXELS {
             result.push(0);
         }
-        let max = self.buffer.iter().max().unwrap();
+        let mut channel_maxima: [u32; 3] = [0, 0, 0];
+        for channel in 0..3 {
+            let max = self.buffer.iter().enumerate().max_by_key(|&(i, v)| if i % 3 == channel {*v} else {0}).unwrap();
+            channel_maxima[channel] = *max.1;
+        }
+        println!("{:?}", channel_maxima);
         for (index, val) in self.buffer.iter().enumerate() {
-            result[index] = (255.0 * ((*val as f64) / (*max as f64))) as u8;
+            // if *val > 255 {
+            //     result[index] = 255; }
+            // else {
+            //     result[index] = *val as u8;
+            // }
+            result[index] = (255.0 * ((*val as f64) / ATAN_SCALE).atan() * 2.0 / PI) as u8;
         }
         result
     }
