@@ -2,7 +2,7 @@ use num::Complex;
 use image::{png::PNGEncoder, ColorType};
 use std::fs::File;
 
-const MAX_ITERATIONS: [usize; 3] = [1000000, 100000, 10000];
+const MAX_ITERATIONS: [usize; 3] = [10000, 100000, 1000];
 const WIDTH: u32 = 2048;
 const HEIGHT: u32 = 1192;
 const PIXELS: usize = (HEIGHT * WIDTH) as usize;
@@ -12,7 +12,7 @@ fn main() {
                                     bottom_right: Complex {re: 11.0/9.0, im: -1.25},
                                     buffer: Box::new(Vec::with_capacity(3*PIXELS))};
     plot_range.iterate(MAX_ITERATIONS);
-    let pixel_data: Box<Vec<u8>> = plot_range.renormalize();
+    let pixel_data = plot_range.renormalize();
     let file_handle = File::create("buddhabrot.png").expect("Error opening file.");
     let png = PNGEncoder::new(file_handle);
     png.encode(&pixel_data[..], WIDTH, HEIGHT, ColorType::RGB(8)).expect("Error encoding png.");
@@ -39,6 +39,9 @@ struct PlotRange {
 impl PlotRange {
     pub fn renormalize(&mut self) -> Box<Vec<u8>> {
         let mut result = Box::new(Vec::with_capacity(3*PIXELS));
+        for _ in 0..3*PIXELS {
+            result.push(0);
+        }
         let max = self.buffer.iter().max().unwrap();
         for (index, val) in self.buffer.iter().enumerate() {
             result[index] = (255.0 * ((*val as f64) / (*max as f64))) as u8;
@@ -79,13 +82,13 @@ impl PlotRange {
             if in_mandelbrot_set(&c) { continue }
             let mut z = Complex {re: 0.0, im: 0.0};
             let mut tr: Vec<usize> = Vec::with_capacity(*iteration_limit);
-            for _ in 0..*iteration_limit {
+            for iter_count in 0..*iteration_limit {
                 z = z*z + c;
                 if let Some(idx) = self.point_to_index(&z) {tr.push(idx)};
                 if z.norm_sqr() > 4.0 {
                     for idx in tr.iter() {
                         for (channel, iterations) in max_iterations.iter().enumerate() {
-                            if *iterations >= index {
+                            if *iterations >= iter_count {
                                 self.buffer[3 * idx + channel] += 1;
                             }
                         }
