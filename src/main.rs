@@ -22,13 +22,13 @@ fn main() {
                           .author("Christian Kuhl <christian.kuhl84@gmail.com>")
                           .about("Renders the nebulabrot fractal as png")
                           .args_from_usage(
-                              "-o, --output=[OUT_FILE] 'Output png to [OUT_FILE]'
-                               -d, --dump=[DUMP_FILE]  'Dump iteration data to [DUMP_FILE]'")
+                              "-o, --output=[OUT_FILE] 'Output png to OUT_FILE'
+                               -d, --dump=[DUMP_FILE]  'Dump iteration data to DUMP_FILE'")
                           .group(ArgGroup::with_name("out")
                                 .args(&["output", "dump"])
                                 .multiple(true)
                                 .required(true))
-                          .arg(Arg::from_usage("-i, --input=[IN_FILE] 'Get input from iteration dump [IN_FILE]'")
+                          .arg(Arg::from_usage("-i, --input=[IN_FILE] 'Get input from iteration dump IN_FILE'")
                                 .conflicts_with("dump"))
                           .arg(Arg::from_usage("-h, --height=[HEIGHT] 'Height of the output image'")
                                 .requires("width"))
