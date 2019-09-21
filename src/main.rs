@@ -3,13 +3,13 @@ use image::{png::PNGEncoder, ColorType};
 use std::fs::File;
 use std::f64::consts::PI;
 use byteorder::{ReadBytesExt, WriteBytesExt, NativeEndian};
-use clap::App;
+use clap::{App, Arg, ArgGroup};
 
-const MAX_ITERATIONS: [usize; 3] = [100000, 10000, 1000];
+const MAX_ITERATIONS: [usize; 3] = [1000000, 100000, 10000];
 const WIDTH: u32 = 2048;
-const HEIGHT: u32 = 1192;
+const HEIGHT: u32 = 1536;
 const PIXELS: usize = (HEIGHT * WIDTH) as usize;
-const ATAN_SCALE: f64 = 10.0;
+const ATAN_SCALE: f64 = 25.0;
 
 fn main() {
     let matches = App::new("nebulabrot")
@@ -18,24 +18,36 @@ fn main() {
                           .about("Renders the nebulabrot fractal as png")
                           .args_from_usage(
                               "-o, --output=[OUT_FILE] 'Output png to [OUT_FILE]'
-                               -i, --input=[IN_FILE]   'Get input from iteration dump [IN_FILE]'
                                -d, --dump=[DUMP_FILE]  'Dump iteration data to [DUMP_FILE]'")
+                          .group(ArgGroup::with_name("out")
+                                .args(&["output", "dump"])
+                                .multiple(true)
+                                .required(true))
+                          .arg(Arg::from_usage("-i, --input=[IN_FILE] 'Get input from iteration dump [IN_FILE]'")
+                                .conflicts_with("dump"))
+                          .arg(Arg::from_usage("-h, --height=[HEIGHT] 'Height of the output image'")
+                                .requires("width"))
+                          .arg_from_usage("-w, --width=[WIDTH] 'Width of the output image'")
                           .get_matches();
 
-    let mut buffer: Box<Vec<u32>>;
+    let height = matches.value_of("height").unwrap_or("").parse::<u32>().unwrap_or(HEIGHT);
+    let width = matches.value_of("width").unwrap_or("").parse::<u32>().unwrap_or(WIDTH);
+    let pixels = (height * width) as usize;
+    let buffer: Box<Vec<u32>>;
     let mut calculate: bool = true;
     if let Some(input_file) = matches.value_of("input") {
         println!("Reading input from {}...", input_file);
-        buffer = buffer_from_file(input_file);
+        buffer = buffer_from_file(input_file, pixels);
         calculate = false;
     } else {
-        buffer = Box::new(Vec::with_capacity(3*PIXELS));
+        buffer = Box::new(Vec::with_capacity(3*pixels));
     }
-    let mut plot_range = PlotRange { top_left: Complex {re: -20.0/9.0-0.5, im: 1.25},
+    let mut plot_range = PlotRange {top_left: Complex {re: -19.0/9.0, im: 1.25},
                                     bottom_right: Complex {re: 11.0/9.0, im: -1.25},
-                                    buffer: buffer};
+                                    buffer: buffer,
+                                    output_width: width,
+                                    output_height: height};
     if calculate {
-        println!("Calculating iterations...");
         plot_range.iterate(MAX_ITERATIONS);
     }
     if let Some(dump_file) = matches.value_of("dump") {
@@ -45,16 +57,16 @@ fn main() {
     if let Some(output_file) = matches.value_of("output") {
         println!("Calculating png data...");
         let pixel_data = plot_range.renormalize();
-        save_png(output_file, &pixel_data);
+        save_png(output_file, &pixel_data, width, height);
     }
     println!("Done.");
 }
 
-fn save_png(file_name: &str, pixel_data: &Box<Vec<u8>>){
+fn save_png(file_name: &str, pixel_data: &Box<Vec<u8>>, width: u32, height: u32){
     println!("Saving png to {}...", file_name);
     let file_handle = File::create(file_name).expect("Error opening file.");
     let png = PNGEncoder::new(file_handle);
-    png.encode(&pixel_data[..], WIDTH, HEIGHT, ColorType::RGB(8)).expect("Error encoding png.");
+    png.encode(&pixel_data[..], width, height, ColorType::RGB(8)).expect("Error encoding png.");
 }
 
 
@@ -65,16 +77,15 @@ fn buffer_to_file(file_name: &str, buffer: &Box<Vec<u32>>) {
     }
 }
 
-fn buffer_from_file(file_name: &str) -> Box<Vec<u32>> {
-    let mut buffer: Box<Vec<u32>> = Box::new(Vec::with_capacity(3*PIXELS));
-    for _ in 0..3*PIXELS {
+fn buffer_from_file(file_name: &str, pixels: usize) -> Box<Vec<u32>> {
+    let mut buffer: Box<Vec<u32>> = Box::new(Vec::with_capacity(3*pixels));
+    for _ in 0..3*pixels {
         buffer.push(0);
     }
     let mut file_handle = File::open(file_name).expect("Error opening file.");
     file_handle.read_u32_into::<NativeEndian>(&mut buffer).unwrap();
     buffer
 }
-
 
 
 fn in_mandelbrot_set(c: &Complex<f64>) -> bool {
@@ -89,16 +100,20 @@ fn in_mandelbrot_set(c: &Complex<f64>) -> bool {
 || (c.re >  0.14 && c.re <   0.29 && c.im >  0.07 && c.im < 0.42)
 }
 
+
 struct PlotRange {
     top_left: Complex<f64>,
     bottom_right: Complex<f64>,
-    buffer: Box<Vec<u32>>
+    buffer: Box<Vec<u32>>,
+    output_height: u32,
+    output_width: u32
 }
 
 impl PlotRange {
     pub fn renormalize(&mut self) -> Box<Vec<u8>> {
-        let mut result = Box::new(Vec::with_capacity(3*PIXELS));
-        for _ in 0..3*PIXELS {
+        let pixels = (self.output_width * self.output_height) as usize;
+        let mut result = Box::new(Vec::with_capacity(3*pixels));
+        for _ in 0..3*pixels {
             result.push(0);
         }
         let mut channel_maxima: [u32; 3] = [0, 0, 0];
@@ -118,15 +133,15 @@ impl PlotRange {
         result
     }
     fn index_to_point(&self, index: &usize) -> Complex<f64> {
-        Complex {re: ((*index % (WIDTH as usize)) as f64) / ((WIDTH - 1) as f64)
+        Complex {re: ((*index % (self.output_width as usize)) as f64) / ((self.output_width - 1) as f64)
                         * self.width() + self.top_left.re,
-                 im: self.top_left.im -(((*index / (WIDTH as usize)) as f64).ceil()) / ((HEIGHT - 1) as f64)
+                 im: self.top_left.im -(((*index / (self.output_width as usize)) as f64).ceil()) / ((self.output_height - 1) as f64)
                                                                                     * self.height()}
     }
     fn point_to_index(&self, point: &Complex<f64>) -> Option<usize> {
-        let index_f: f64 = ((self.top_left.im - point.im) / self.height() * ((HEIGHT - 1) as f64)).floor() * (WIDTH as f64)
-                                    + (point.re - self.top_left.re) / self.width() * ((WIDTH - 1) as f64);
-        if index_f < 0.0 || index_f >= PIXELS as f64 {
+        let index_f: f64 = ((self.top_left.im - point.im) / self.height() * ((self.output_height - 1) as f64)).floor() * (self.output_width as f64)
+                                    + (point.re - self.top_left.re) / self.width() * ((self.output_width - 1) as f64);
+        if index_f < 0.0 || index_f >= (self.output_width * self.output_height) as f64 {
             return None
         } else {
             return Some(index_f as usize)
@@ -139,11 +154,13 @@ impl PlotRange {
         self.bottom_right.re - self.top_left.re
     }
     pub fn iterate(&mut self, max_iterations: [usize; 3]) {
-        for _ in 0..3*PIXELS {
+        let pixels = (self.output_width * self.output_height) as usize;
+        for _ in 0..3*pixels {
             self.buffer.push(0);
         }
         let iteration_limit = max_iterations.iter().max().unwrap();
-        for index in 0..PIXELS {
+        println!("Calculating {} iterations...", iteration_limit);
+        for index in 0..pixels {
             if index % 50000 == 0 {
                 println!("{:.2}% complete...", 100.0 * (index as f32) / (PIXELS as f32));
             }
