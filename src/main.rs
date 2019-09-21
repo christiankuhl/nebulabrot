@@ -5,7 +5,7 @@ pub mod file_io;
 use file_io::{save_png, buffer_from_file, buffer_to_file};
 
 pub mod colour;
-use colour::colour_function;
+use colour::{colour_function, ColourFunctionArgs};
 
 pub mod plot;
 use plot::PlotRange;
@@ -15,6 +15,8 @@ const WIDTH: u32 = 2048;
 const HEIGHT: u32 = 1536;
 const TOP_LEFT: Complex<f64> = Complex {re: -19.0/9.0, im: 1.25};
 const BOTTOM_RIGHT: Complex<f64> = Complex {re: 11.0/9.0, im: -1.25};
+const BOOST: f64 = 4.0;
+const ATAN_SCALE: f64 = 25.0;
 
 fn main() {
     let matches = App::new("nebulabrot")
@@ -32,8 +34,11 @@ fn main() {
                                 .conflicts_with("dump"))
                           .arg(Arg::from_usage("-h, --height=[HEIGHT] 'Height of the output image'")
                                 .requires("width"))
-                          .arg_from_usage("-w, --width=[WIDTH] 'Width of the output image'")
-                          .arg_from_usage("-c, --colour_function=[COLOUR_FUNCTION] 'Colouring function to use. One of atan_scaled, linear_capped.'")
+                          .args_from_usage("-w, --width=[WIDTH] 'Width of the output image'
+                                            -c, --colour_function=[COLOUR_FUNCTION] 'Colouring function to use. One of atan_scaled, linear_capped.'
+                                            -b, --boost=[BOOST] 'Colour boost factor for linear_capped'
+                                            -s, --scale=[SCALE] 'Scaling factor for atan_scaled'
+                                            --debug 'Display debug data'")
                           .get_matches();
 
     let height = matches.value_of("height").unwrap_or_default().parse::<u32>().unwrap_or(HEIGHT);
@@ -63,7 +68,13 @@ fn main() {
     if let Some(output_file) = matches.value_of("output") {
         println!("Calculating png data...");
         let col_func = colour_function(matches.value_of("colour_function").unwrap_or_default());
-        let pixel_data = plot_range.renormalize(col_func);
+        let mut args = ColourFunctionArgs {
+            channel_maxima: [0; 3],
+            boost: matches.value_of("boost").unwrap_or_default().parse::<f64>().unwrap_or(BOOST),
+            atan_scale: matches.value_of("scale").unwrap_or_default().parse::<f64>().unwrap_or(ATAN_SCALE),
+            debug: matches.is_present("debug")
+        };
+        let pixel_data = plot_range.renormalize(col_func, &mut args);
         save_png(output_file, &pixel_data, width, height);
     }
     println!("Done.");

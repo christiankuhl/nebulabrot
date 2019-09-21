@@ -1,5 +1,7 @@
 use num::Complex;
 
+use crate::colour::ColourFunctionArgs;
+
 fn in_mandelbrot_set(c: &Complex<f64>) -> bool {
    (c.re >  -1.2 && c.re <=  -1.1 && c.im >  -0.1 && c.im < 0.1)
     || (c.re >  -1.1 && c.re <=  -0.9 && c.im >  -0.2 && c.im < 0.2)
@@ -22,7 +24,7 @@ pub struct PlotRange {
 }
 
 impl PlotRange {
-    pub fn renormalize(&mut self, colour_function: fn(usize, &u32, &[u32; 3]) -> u8) -> Box<Vec<u8>> {
+    pub fn renormalize(&mut self, colour_function: fn(usize, &u32, &ColourFunctionArgs) -> u8, args: &mut ColourFunctionArgs) -> Box<Vec<u8>> {
         let pixels = (self.output_width * self.output_height) as usize;
         let mut result = Box::new(Vec::with_capacity(3*pixels));
         for _ in 0..3*pixels {
@@ -33,9 +35,12 @@ impl PlotRange {
             let max = self.buffer.iter().enumerate().max_by_key(|&(i, v)| if i % 3 == channel {*v} else {0}).unwrap();
             channel_maxima[channel] = *max.1;
         }
-        // println!("{:?}", channel_maxima);
+        args.channel_maxima = channel_maxima;
+        if args.debug {
+            println!("Channel maxima are {:?}", channel_maxima);
+        }
         for (index, val) in self.buffer.iter().enumerate() {
-            result[index] = colour_function(index % 3, val, &channel_maxima);
+            result[index] = colour_function(index % 3, val, &args);
         }
         result
     }
