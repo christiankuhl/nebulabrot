@@ -2,7 +2,7 @@
 
 A simple tool for plotting the Nebulabrot visualisation of the Mandelbrot set in Rust.
 
-![alt text](https://github.com/christiankuhl/mandelbrot-rs/raw/master/nebulabrot.png "nebulabrot")
+![alt text](https://github.com/christiankuhl/nebulabrot/raw/master/nebulabrot.png "nebulabrot")
 
 ## Installation and usage
 
