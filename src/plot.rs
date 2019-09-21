@@ -33,7 +33,7 @@ impl PlotRange {
             let max = self.buffer.iter().enumerate().max_by_key(|&(i, v)| if i % 3 == channel {*v} else {0}).unwrap();
             channel_maxima[channel] = *max.1;
         }
-        println!("{:?}", channel_maxima);
+        // println!("{:?}", channel_maxima);
         for (index, val) in self.buffer.iter().enumerate() {
             result[index] = colour_function(index % 3, val, &channel_maxima);
         }
