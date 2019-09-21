@@ -42,12 +42,15 @@ impl PlotRange {
     fn index_to_point(&self, index: &usize) -> Complex<f64> {
         Complex {re: ((*index % (self.output_width as usize)) as f64) / ((self.output_width - 1) as f64)
                         * self.width() + self.top_left.re,
-                 im: self.top_left.im -(((*index / (self.output_width as usize)) as f64).ceil()) / ((self.output_height - 1) as f64)
-                                                                                    * self.height()}
+                 im: self.top_left.im -(((*index / (self.output_width as usize)) as f64).ceil())
+                                        / ((self.output_height - 1) as f64) * self.height()}
     }
     fn point_to_index(&self, point: &Complex<f64>) -> Option<usize> {
-        let index_f: f64 = ((self.top_left.im - point.im) / self.height() * ((self.output_height - 1) as f64)).floor() * (self.output_width as f64)
-                                    + (point.re - self.top_left.re) / self.width() * ((self.output_width - 1) as f64);
+        let index_f: f64 = ((self.top_left.im - point.im) / self.height()
+                                        * ((self.output_height - 1) as f64)).floor()
+                                        * (self.output_width as f64)
+                                    + (point.re - self.top_left.re) / self.width()
+                                        * ((self.output_width - 1) as f64);
         if index_f < 0.0 || index_f >= (self.output_width * self.output_height) as f64 {
             return None
         } else {

@@ -10,7 +10,7 @@ use colour::colour_function;
 pub mod plot;
 use plot::PlotRange;
 
-const MAX_ITERATIONS: [usize; 3] = [5000, 500, 50];
+const MAX_ITERATIONS: [usize; 3] = [1000000, 100000, 10000];
 const WIDTH: u32 = 2048;
 const HEIGHT: u32 = 1536;
 const TOP_LEFT: Complex<f64> = Complex {re: -19.0/9.0, im: 1.25};
