@@ -14,7 +14,6 @@ fn in_mandelbrot_set(c: &Complex<f64>) -> bool {
     || (c.re >  0.14 && c.re <   0.29 && c.im >  0.07 && c.im < 0.42)
 }
 
-
 pub struct PlotRange {
     pub top_left: Complex<f64>,
     pub bottom_right: Complex<f64>,
@@ -68,7 +67,7 @@ impl PlotRange {
     fn width(&self) -> f64 {
         self.bottom_right.re - self.top_left.re
     }
-    pub fn iterate(&mut self, max_iterations: [usize; 3]) {
+    pub fn iterate(&mut self, max_iterations: Vec<usize>) {
         let pixels = (self.output_width * self.output_height) as usize;
         for _ in 0..3*pixels {
             self.buffer.push(0);
