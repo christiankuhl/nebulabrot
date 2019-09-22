@@ -6,7 +6,7 @@ pub mod file_io;
 use file_io::{save_png, buffer_from_file, buffer_to_file};
 
 pub mod colour;
-use colour::{colour_function, ColourFunctionArgs};
+use colour::{colour_function, ColourFunctionArgs, permute_channels};
 
 pub mod plot;
 use plot::PlotRange;
@@ -58,6 +58,9 @@ fn main() {
                                             -b, --boost=[BOOST] 'Colour boost factor for linear_capped'
                                             -s, --scale=[SCALE] 'Scaling factor for atan_scaled'
                                             --debug 'Display debug data'")
+                          .arg(Arg::from_usage("-p, --permutation=[PERM] 'Permute channels.'")
+                                .possible_values(&["RG", "RB", "GB"])
+                                .multiple(true))
                           .get_matches();
 
     let height = matches.value_of("height").unwrap_or_default().parse::<u32>().unwrap_or(HEIGHT);
@@ -117,7 +120,8 @@ fn main() {
             atan_scale: matches.value_of("scale").unwrap_or_default().parse::<f64>().unwrap_or(ATAN_SCALE),
             debug: matches.is_present("debug")
         };
-        let pixel_data = plot_range.renormalize(col_func, &mut args);
+        let mut pixel_data = plot_range.renormalize(col_func, &mut args);
+        permute_channels(&mut pixel_data, matches.values_of("permutation"));
         save_png(output_file, &pixel_data, width, height);
     }
     println!("Done.");
