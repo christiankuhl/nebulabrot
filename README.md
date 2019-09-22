@@ -50,7 +50,7 @@ OPTIONS:
 This example is generated via
 
 ```
-nebulabrot -o tmp/test.png -d tmp/test.bin --x1 -1.254 --y1 -0.34175 --x2 -1.2515 --y2 -0.34425 -h 2048 -w 2048 -R 50000 -G 5000 -B 500
+nebulabrot -o tmp/test.png -d tmp/test.bin --x1 -1.254 --y1 -0.34425 --x2 -1.2515 --y2 -0.34175 -h 2048 -w 2048 -R 50000 -G 5000 -B 500
 ```
 
 Iteration data is dumped to tmp/test.bin, hence we are able to experiment with colour after the heavy work is done.
