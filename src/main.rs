@@ -80,7 +80,7 @@ fn main() {
     if check_range.iter().any(|v| v.is_err()) {
         println!("Please specify valid plot boundaries. Reverting to defaults.");
         check_range = vec![Ok(X1), Ok(Y1), Ok(X2), Ok(Y2)];
-    } 
+    }
     let result_range: Result<Vec<f64>, ParseFloatError> = check_range.into_iter().collect();
     let range = result_range.unwrap();
     let top_left = Complex {re: range[0], im: range[1]};
@@ -96,7 +96,6 @@ fn main() {
             check_iterations = (vec!["red", "green", "blue"]).iter().map(
                                 |n| matches.value_of(n).unwrap_or_default().parse::<usize>())
                                 .collect();
-            println!("{:?}", check_iterations);
         }
         if check_iterations.iter().any(|v| v.is_err()) {
             println!("Please specify valid iteration counts for red, green and blue. Reverting to defaults.");
