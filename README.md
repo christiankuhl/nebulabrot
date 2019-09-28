@@ -35,6 +35,7 @@ OPTIONS:
     -o, --output <OUT_FILE>                    Output png to OUT_FILE
     -p, --permutation <PERM>...                Permute channels. [possible values: RG, RB, GB]
     -R, --red <RED>                            Number of iterations for the red channel
+    -S, --samples <SAMPLES>                    Number of sample points per pixel
     -s, --scale <SCALE>                        Scaling factor for atan_scaled
     -w, --width <WIDTH>                        Width of the output image
         --x1 <X1>                              Real part of top left corner
