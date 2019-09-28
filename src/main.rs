@@ -22,6 +22,7 @@ const X2: f64 = 11.0/9.0;
 const Y2: f64 = -1.25;
 const BOOST: f64 = 4.0;
 const ATAN_SCALE: f64 = 25.0;
+const BOX_SAMPLES: usize = 1;
 
 fn main() {
     let matches = App::new("nebulabrot")
@@ -47,7 +48,8 @@ fn main() {
                           .arg(Arg::from_usage("-R, --red=[RED] 'Number of iterations for the red channel'")
                                 .requires_all(&["green", "blue"]))
                           .args_from_usage("-G, --green=[GREEN] 'Number of iterations for the green channel'
-                                            -B, --blue=[BLUE] 'Number of iterations for the blue channel'")
+                                            -B, --blue=[BLUE] 'Number of iterations for the blue channel'
+                                            -S, --samples=[SAMPLES] 'Number of sample points per pixel")
                           .arg(Arg::from_usage("-i, --input=[IN_FILE] 'Get input from iteration dump IN_FILE'")
                                 .conflicts_with_all(&["dump", "red", "green", "blue"]))
                           .arg(Arg::from_usage("-h, --height=[HEIGHT] 'Height of the output image'")
@@ -65,6 +67,7 @@ fn main() {
 
     let height = matches.value_of("height").unwrap_or_default().parse::<u32>().unwrap_or(HEIGHT);
     let width = matches.value_of("width").unwrap_or_default().parse::<u32>().unwrap_or(WIDTH);
+    let samples = matches.value_of("samples").unwrap_or_default().parse::<usize>().unwrap_or(BOX_SAMPLES);
     let pixels = (height * width) as usize;
     let buffer: Box<Vec<u32>>;
     let mut calculate: bool = true;
@@ -105,7 +108,7 @@ fn main() {
             check_iterations = vec![Ok(RED), Ok(GREEN), Ok(BLUE)];
         }
         let max_iterations: Result<Vec<usize>, ParseIntError> = check_iterations.into_iter().collect();
-        plot_range.iterate(max_iterations.unwrap());
+        plot_range.iterate(max_iterations.unwrap(), samples);
     }
     if let Some(dump_file) = matches.value_of("dump") {
         println!("Dumping iteration data to {}...", dump_file);

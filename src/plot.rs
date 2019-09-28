@@ -69,7 +69,7 @@ impl PlotRange {
     fn width(&self) -> f64 {
         self.bottom_right.re - self.top_left.re
     }
-    pub fn iterate(&mut self, max_iterations: Vec<usize>) {
+    pub fn iterate(&mut self, max_iterations: Vec<usize>, samples: usize) {
         let pixels = (self.output_width * self.output_height) as usize;
         for _ in 0..3*pixels {
             self.buffer.push(0);
@@ -84,24 +84,26 @@ impl PlotRange {
             .template("[{elapsed_precise}] {bar:40.cyan/blue} {percent}% ({eta})"));
         for index in 0..pixels {
             progress_bar.inc(1);
-            let mut c = self.index_to_point(&(index as usize));
-            c.re += rng.gen::<f64>() * pixel_width;
-            c.im += rng.gen::<f64>() * pixel_height;
-            if in_mandelbrot_set(&c) { continue }
-            let mut z = Complex {re: 0.0, im: 0.0};
-            let mut tr: Vec<usize> = Vec::with_capacity(*iteration_limit);
-            for iter_count in 0..*iteration_limit {
-                z = z*z + c;
-                if let Some(idx) = self.point_to_index(&z) {tr.push(idx)};
-                if z.norm_sqr() > 4.0 {
-                    for idx in tr.iter() {
-                        for (channel, iterations) in max_iterations.iter().enumerate() {
-                            if *iterations >= iter_count {
-                                self.buffer[3 * idx + channel] += 1;
+            for _ in 0..samples {
+                let mut c = self.index_to_point(&(index as usize));
+                c.re += rng.gen::<f64>() * pixel_width;
+                c.im += rng.gen::<f64>() * pixel_height;
+                if in_mandelbrot_set(&c) { continue }
+                let mut z = Complex {re: 0.0, im: 0.0};
+                let mut tr: Vec<usize> = Vec::with_capacity(*iteration_limit);
+                for iter_count in 0..*iteration_limit {
+                    z = z*z + c;
+                    if let Some(idx) = self.point_to_index(&z) {tr.push(idx)};
+                    if z.norm_sqr() > 4.0 {
+                        for idx in tr.iter() {
+                            for (channel, iterations) in max_iterations.iter().enumerate() {
+                                if *iterations >= iter_count {
+                                    self.buffer[3 * idx + channel] += 1;
+                                }
                             }
                         }
+                        break;
                     }
-                    break;
                 }
             }
         }
