@@ -1,12 +1,12 @@
-use image::{png::PNGEncoder, ColorType};
+use image::{codecs::png::PngEncoder, ColorType, ImageEncoder};
 use std::fs::File;
 use byteorder::{ReadBytesExt, WriteBytesExt, NativeEndian};
 
 pub fn save_png(file_name: &str, pixel_data: &Box<Vec<u8>>, width: u32, height: u32){
     println!("Saving png to {}...", file_name);
     let file_handle = File::create(file_name).expect("Error opening file.");
-    let png = PNGEncoder::new(file_handle);
-    png.encode(&pixel_data[..], width, height, ColorType::RGB(8)).expect("Error encoding png.");
+    let png = PngEncoder::new(file_handle);
+    png.write_image(&pixel_data[..], width, height, ColorType::Rgb8).expect("Error encoding png.");
 }
 
 
