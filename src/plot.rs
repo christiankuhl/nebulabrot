@@ -1,6 +1,6 @@
 use num::Complex;
 use rand::Rng;
-use indicatif::{ProgressBar, ProgressStyle};
+// use indicatif::{ProgressBar, ProgressStyle};
 
 use crate::colour::ColourFunctionArgs;
 
@@ -79,11 +79,11 @@ impl PlotRange {
         let mut rng = rand::thread_rng();
         let iteration_limit = max_iterations.iter().max().unwrap();
         println!("Calculating {} iterations...", iteration_limit);
-        let progress_bar = ProgressBar::new(pixels as u64);
-        progress_bar.set_style(ProgressStyle::default_bar()
-            .template("[{elapsed_precise}] {bar:40.cyan/blue} {percent}% ({eta})"));
+        // let progress_bar = ProgressBar::new(pixels as u64);
+        // progress_bar.set_style(ProgressStyle::default_bar()
+        //     .template("[{elapsed_precise}] {bar:40.cyan/blue} {percent}% ({eta})"));
         for index in 0..pixels {
-            progress_bar.inc(1);
+            // progress_bar.inc(1);
             for _ in 0..samples {
                 let mut c = self.index_to_point(&(index as usize));
                 c.re += rng.gen::<f64>() * pixel_width;
@@ -107,6 +107,6 @@ impl PlotRange {
                 }
             }
         }
-        progress_bar.finish();
+        // progress_bar.finish();
     }
 }
