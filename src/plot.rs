@@ -77,7 +77,7 @@ impl PlotRange {
         let pixel_height = self.height() / (self.output_height as f64);
         let pixel_width = self.height() / (self.output_width as f64);
         let mut rng = rand::thread_rng();
-        let iteration_limit = max_iterations.iter().max().unwrap();
+        let iteration_limit = *max_iterations.iter().max().unwrap();
         println!("Calculating {} iterations...", iteration_limit);
         let progress_bar = ProgressBar::new(pixels as u64);
         progress_bar.set_style(ProgressStyle::default_bar()
@@ -90,14 +90,14 @@ impl PlotRange {
                 c.im += rng.gen::<f64>() * pixel_height;
                 if in_mandelbrot_set(&c) { continue }
                 let mut z = Complex {re: 0.0, im: 0.0};
-                let mut tr: Vec<usize> = Vec::with_capacity(*iteration_limit);
-                for iter_count in 0..*iteration_limit {
+                let mut tr: Vec<usize> = Vec::with_capacity(iteration_limit);
+                for iter_count in 0..iteration_limit {
                     z = z*z + c;
                     if let Some(idx) = self.point_to_index(&z) {tr.push(idx)};
                     if z.norm_sqr() > 4.0 {
                         for idx in tr.iter() {
-                            for (channel, iterations) in max_iterations.iter().enumerate() {
-                                if *iterations >= iter_count {
+                            for (channel, &iterations) in max_iterations.iter().enumerate() {
+                                if iterations >= iter_count {
                                     self.buffer[3 * idx + channel] += 1;
                                 }
                             }
